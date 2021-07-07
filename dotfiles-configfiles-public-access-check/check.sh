@@ -1,4 +1,4 @@
-BASEURLS=('adityaputra.com' )
+BASEURLS=('astralweb.com.tw' )
 PATHS=('.env' '.htaccess' 'wp-config.php' 'app/etc/config.xml' 'config.php' 'config.xml')
 #PATHS=('.env')
 
