@@ -1,0 +1,71 @@
+#!/bin/sh
+
+# update packages
+sudo yum update
+
+# install additional packages
+sudo yum -y install git tmux amazon-efs-utils wget ruby amazon-cloudwatch-agent
+
+# git code source
+#docker-compose, missing authentication mechanism
+#git clone https://github.com/AstralWebTW/docker-m2.git -b 2.3.5 html
+
+#source code
+#scp -i .ssh/old-server.pem  root@18.140.227.91:/var/www/html/source.tar.gz.20210511 .
+#tar -xvzf source.tar.gz.2021051
+#rm /var/www/html/src/ -rf
+#mv source /var/www/html/src
+#chown -R root:root /var/www/html/
+#cd /var/www/html
+#docker-compose -f docker-compose.production.frontend.yml up -d
+
+# install docker and docker-compose
+sudo yum -y install docker.x86_64
+sudo systemctl enable docker.service
+sudo systemctl start docker.service
+
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+#codedeploy agent
+wget https://aws-codedeploy-ap-southeast-1.s3.amazonaws.com/latest/install
+chmod +x ./install
+./install auto
+
+#cloudwatch agent
+sudo aws s3 cp s3://source-web-configs/source-frontend-cloudwatch-config-default /root/.
+sudo systemctl enable amazon-cloudwatch-agent.service
+sudo systemctl restart amazon-cloudwatch-agent.service
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl  -a fetch-config -m ec2 -s -c file:/root/source-frontend-cloudwatch-config-default
+sudo systemctl restart amazon-cloudwatch-agent.service
+
+#zabbix
+rpm -Uvh https://repo.zabbix.com/zabbix/5.0/rhel/7/x86_64/zabbix-release-5.0-1.el7.noarch.rpm
+yum clean all
+yum -y install zabbix-agent
+aws s3 cp s3://source-web-configs/zabbix_agentd.conf /etc/zabbix/zabbix_agentd.conf
+systemctl enable zabbix-agent.service
+systemctl restart zabbix-agent.service
+
+
+# mount EFS
+file_system_id_01=fs-5602a316
+efs_directory_id_01=/var/www/html/src/pub/media
+sudo mkdir -p ${efs_directory_id_01}
+echo "${file_system_id_01}:/media/ ${efs_directory_id_01} efs tls,_netdev" >> /etc/fstab
+mount -a -t efs defaults
+#sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 172.31.9.46:/media/ ${efs_directory_id_01}
+
+# install mysql client
+#disabled because I assume mysql client will be included in docker container
+#sudo yum -y install https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm
+#sudo yum -y install mysql-community-client
+
+# install redis client
+
+# copy autodeploy script
+
+# install and configure auto deploy
+
+# what else?
